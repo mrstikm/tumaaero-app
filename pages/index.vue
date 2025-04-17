@@ -36,7 +36,9 @@
 					v-if="scannerOpen"
 					class="flex justify-center absolute top-0 left-0 w-full h-full bg-black bg-opacity-50 p-20 flex items-center justify-center">
 					<div class="bg-white p-4">
-						<StreamBarcodeReader class="reader" @decode="onDecode" />
+						<ClientOnly>
+							<StreamBarcodeReader class="reader" @decode="onDecode" />
+						</ClientOnly>
 					</div>
 				</div>
 			</div>
