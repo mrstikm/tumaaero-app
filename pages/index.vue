@@ -37,7 +37,16 @@
 					class="flex justify-center absolute top-0 left-0 w-full h-full bg-black bg-opacity-50 p-20 flex items-center justify-center">
 					<div class="bg-white p-4">
 						<ClientOnly>
-							<StreamBarcodeReader class="reader" @decode="onDecode" />
+							<StreamBarcodeReader
+								class="reader"
+								@decode="onDecode"
+								:constraints="{
+									video: {
+										facingMode: { exact: 'environment' },
+										width: { ideal: 1920 },
+										height: { ideal: 1080 },
+									},
+								}" />
 						</ClientOnly>
 					</div>
 				</div>
@@ -65,7 +74,10 @@
 </script>
 <style scoped>
 	.reader {
-		max-width: 480px;
+		width: 90vw;
+	}
+	:deep(video) {
+		width: 100%;
 	}
 	a {
 		display: inline-block;

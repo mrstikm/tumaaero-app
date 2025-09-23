@@ -3,6 +3,9 @@
 </template>
 <script setup></script>
 <style>
+	body {
+		padding-bottom: 50px;
+	}
 	.container {
 		max-width: 1440px;
 		margin: 0 auto;
