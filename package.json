@@ -10,9 +10,12 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@chenfengyuan/vue-barcode": "2",
     "autoprefixer": "^10.4.20",
+    "jsbarcode": "3",
     "nuxt": "^3.13.0",
     "postcss": "^8.4.47",
+    "qrcode.vue": "^3.6.0",
     "vue": "latest",
     "vue-barcode-reader": "^1.0.3",
     "vue-router": "latest"

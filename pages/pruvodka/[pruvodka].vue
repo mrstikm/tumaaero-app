@@ -4,7 +4,7 @@
 		<div>
 			<div class="flex justify-between items-center py-2">
 				<span><img src="/logo.jpg" alt="Tůma Aeorspace" width="320" height="107" /></span>
-				<h1>*{{ route.params.pruvodka.replaceAll('_', '/') }}*</h1>
+				<h1><vue-barcode :value="route.params.pruvodka.replaceAll('_', '/')" :options="{ displayValue: false }"></vue-barcode></h1>
 				<div class="text-3xl text-right">
 					<strong>
 						Výrobní průvodka <br />
@@ -52,7 +52,7 @@
 						</table>
 					</div>
 				</div>
-				<div class="basis-2/6">
+				<div class="basis-2/6 flex flex-col">
 					<h2 class="font-bold text-lg">Dostupné soubory:</h2>
 					<ul>
 						<li v-for="(priloha, index) in prilohy0G" :key="index">
@@ -61,6 +61,12 @@
 							</a>
 						</li>
 					</ul>
+					<qrcode-vue
+						style="margin-top: auto; margin-bottom: 24px"
+						:value="route.params.pruvodka.replaceAll('_', '/')"
+						:size="164"
+						level="H"
+						render-as="svg" />
 				</div>
 			</div>
 			<div class="material">
@@ -94,7 +100,7 @@
 								<td>{{ item.NO_SKLADU }}</td>
 								<td>{{ item.POTREBNE_MNOZSTVI }}</td>
 								<td>{{ getVydaneMnozstvi(item.NO_ARTIKLU, item.NO_SKLADU) }}</td>
-								<td>{{ item.POTREBNE_MNOZSTVI / item.POCET_PODPRODUKTU }} {{ item.JEDNOTKA }}</td>
+								<td>{{ (item.POTREBNE_MNOZSTVI / item.POCET_PODPRODUKTU).toFixed(2) }} {{ item.JEDNOTKA }}</td>
 								<td>{{ item.NO_OPERACE }}</td>
 							</tr>
 							<tr
@@ -107,12 +113,10 @@
 												<th>Datum výdeje</th>
 												<th>Č. artiklu</th>
 												<th>Sklad</th>
-												<th>Č. výdejky</th>
 												<th>Množství</th>
 												<th>Sér. číslo</th>
-												<th>Atest</th>
+												<th>Tavba</th>
 												<th>Vydal</th>
-												<th>Poznámka</th>
 											</tr>
 										</thead>
 										<tbody>
@@ -123,12 +127,10 @@
 												<td>{{ new Date(material.DATUM).toLocaleDateString('cs-CZ') }}</td>
 												<td>{{ material.NO_ARTIKLU }}</td>
 												<td>{{ material.NO_SKLADU }}</td>
-												<td>{{ material.NO_VYDEJKY }}</td>
 												<td>{{ material.MNOZSTVI }}</td>
 												<td>{{ material.SER_NO }}</td>
-												<td>{{ material.ATEST }}</td>
+												<td>{{ material.TAVBA }}</td>
 												<td>{{ material.VYDAL }}</td>
-												<td>{{ material.POZN }}</td>
 											</tr>
 										</tbody>
 									</table>
@@ -181,16 +183,20 @@
 							</tr>
 							<tr class="additional-info" :class="{ expanded: expandedRows.includes(item) }">
 								<td colspan="9">
-									<table>
+									<table v-if="mereniPD.filter((mereni) => mereni.NO_OPERACE === item.NO_OPERACE).length">
 										<tbody>
-											<tr v-if="mereniPD.filter((mereni) => mereni.NO_OPERACE === item.NO_OPERACE).length">
-												<td
-													colspan="9"
-													v-for="(mereni, index2) in mereniPD.filter(
-														(mereni) => mereni.NO_OPERACE === item.NO_OPERACE
-													)"
-													:key="index2">
-													<p class="pl-8">{{ mereni.POCET_MERENI }} - {{ mereni.PLAN_KONTROL }}</p>
+											<tr
+												v-for="(mereni, index2) in mereniPD.filter(
+													(mereni) => mereni.NO_OPERACE === item.NO_OPERACE
+												)"
+												:key="index2">
+												<td colspan="9" :key="index2">
+													<p
+														class="pl-8"
+														v-html="
+															mereni.POCET_MERENI + '<br>' + mereni.PLAN_KONTROL.replace(/ {3}/g, '<br>')
+														"></p>
+
 													<!-- <p>{{ mereni }}</p> -->
 													<!-- <template
 														v-for="(mereniSingle, index3) in mereniPD.filter((item) => item.NO_OPERACE === mereni.NO_OPERACE)"
@@ -213,19 +219,27 @@
 											<tr v-if="getRelevantLogging(item).length">
 												<td colspan="9">
 													<table>
+														<thead>
+															<tr>
+																<th>Č. pracovníka</th>
+																<th>Jméno</th>
+																<th>Začátek</th>
+																<th>Konec</th>
+																<th>OK ks</th>
+																<th>NOK ks</th>
+															</tr>
+														</thead>
 														<tbody>
 															<tr
 																v-for="(item, index) in getRelevantLogging(item)"
 																:key="index"
 																class="cipovani">
-																<td colspan="2"></td>
 																<td>{{ item.NO_PRACOVNIKA }}</td>
 																<td>{{ item.JMENO }}</td>
 																<td>{{ new Date(item.ZAHAJENO).toLocaleString('cs-CZ') }}</td>
 																<td>{{ new Date(item.UKONCENO).toLocaleString('cs-CZ') }}</td>
-																<td>OK - {{ item.POCET_KS }}</td>
-																<td>NOK - {{ item.ZMETKY }}</td>
-																<td></td>
+																<td>{{ item.POCET_KS }}</td>
+																<td>{{ item.ZMETKY }}</td>
 															</tr>
 														</tbody>
 													</table>
@@ -306,6 +320,9 @@
 	</div>
 </template>
 <script setup>
+	import VueBarcode from '@chenfengyuan/vue-barcode'
+	import QrcodeVue from 'qrcode.vue'
+
 	const route = useRoute()
 	const expandedRows = ref([])
 
@@ -355,7 +372,6 @@
 		})
 	)
 	console.log(data.data.value.payload)
-
 	hlavickaP0.value = data.data.value.payload?.find((item) => item.TYP === 'HLAVICKA P0')
 	materialP1.value = data.data.value.payload?.filter((item) => item.TYP === 'MATERIAL P1')
 	operaceP2.value = data.data.value.payload?.filter((item) => item.TYP === 'OPERACE P2')
@@ -382,6 +398,9 @@
 	}
 </script>
 <style scoped>
+	h1 {
+		margin: 0;
+	}
 	th {
 		text-align: left;
 	}
@@ -426,6 +445,7 @@
 		table,
 		tbody {
 			width: 100%;
+			font-size: 0.875rem;
 		}
 		td:has(table) {
 			padding: 0;
