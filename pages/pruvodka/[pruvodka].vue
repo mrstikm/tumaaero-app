@@ -122,7 +122,7 @@
 										<tbody>
 											<tr
 												v-for="(material, indexMat) in vydejP5.filter(
-													(mat) => mat.NO_ARTIKLU === item.NO_ARTIKLU && mat.NO_SKLADU === item.NO_SKLADU
+													(mat) => mat.NO_ARTIKLU === item.NO_ARTIKLU && mat.NO_SKLADU === item.NO_SKLADU,
 												)">
 												<td>{{ new Date(material.DATUM).toLocaleDateString('cs-CZ') }}</td>
 												<td>{{ material.NO_ARTIKLU }}</td>
@@ -145,7 +145,7 @@
 			</div>
 			<div class="operace">
 				<table class="w-full">
-					<thead>
+					<thead class="sticky top-0 z-10">
 						<tr>
 							<th>Č.op.</th>
 							<th>Činnost</th>
@@ -176,40 +176,42 @@
 								<td>{{ item.NORMA_KS }}</td>
 								<td>{{ item.POCET_PODPRODUKTU }}</td>
 								<td>
-									<!-- {{ getOKks(item.NO_ROZPISU) }} -->
+									{{ getOKks(item.NO_ROZPISU) }}
 								</td>
-								<td></td>
+								<td>{{ getNOKks(item.NO_ROZPISU) }}</td>
 								<td></td>
 							</tr>
 							<tr class="additional-info" :class="{ expanded: expandedRows.includes(item) }">
 								<td colspan="9">
+									<table v-if="item.POZN_BLOK">
+										<tbody>
+											<tr>
+												<td colspan="9">Poznámka: {{ item.POZN_BLOK }}</td>
+											</tr>
+										</tbody>
+									</table>
 									<table v-if="mereniPD.filter((mereni) => mereni.NO_OPERACE === item.NO_OPERACE).length">
 										<tbody>
-											<tr
-												v-for="(mereni, index2) in mereniPD.filter(
-													(mereni) => mereni.NO_OPERACE === item.NO_OPERACE
-												)"
-												:key="index2">
+											<tr v-for="(mereni, index2) in mereniPD.filter((mereni) => mereni.NO_OPERACE === item.NO_OPERACE)" :key="index2">
 												<td colspan="9" :key="index2">
-													<p
-														class="pl-8"
-														v-html="
-															mereni.POCET_MERENI + '<br>' + mereni.PLAN_KONTROL.replace(/ {3}/g, '<br>')
-														"></p>
-
-													<!-- <p>{{ mereni }}</p> -->
-													<!-- <template
-														v-for="(mereniSingle, index3) in mereniPD.filter((item) => item.NO_OPERACE === mereni.NO_OPERACE)"
-														:key="index">
-														{{ mereniSingle }}</template
-													> -->
-													<!-- <template v-for="(mereniSingle, index3) in extractNumber(mereni.POCET_MERENI)" :key="index3">
-														<div>
-															<br />
-															<hr />
-															<p>{{ mereni.PLAN_KONTROL }}</p>
-														</div>
-													</template> -->
+													<hr v-if="index2 > 0" />
+													<p v-html="mereni.POCET_MERENI + '<br>' + mereni.PLAN_KONTROL.replace(/ {3}/g, '<br>')"></p>
+													<p>
+														Naměřeno:
+														<span
+															v-for="(mereniReal, index3) in mereniREAL.filter(
+																(mereniReal) =>
+																	mereniReal.NO_OPERACE === item.NO_OPERACE &&
+																	mereniReal.NO_PLANU === mereni.NO_PLANU &&
+																	mereniReal.NO_ROZPISU === mereni.NO_ROZPISU,
+															)"
+															:key="index3">
+															{{ mereniReal.ID_UZIVATELE }} - {{ mereniReal.NAMERENO }} ({{ mereniReal.MERICI_METODA }})<span
+																v-if="mereniReal.POZNAMKA"
+																>- {{ mereniReal.POZNAMKA }}</span
+															>,
+														</span>
+													</p>
 												</td>
 											</tr>
 										</tbody>
@@ -230,10 +232,7 @@
 															</tr>
 														</thead>
 														<tbody>
-															<tr
-																v-for="(item, index) in getRelevantLogging(item)"
-																:key="index"
-																class="cipovani">
+															<tr v-for="(item, index) in getRelevantLogging(item)" :key="index" class="cipovani">
 																<td>{{ item.NO_PRACOVNIKA }}</td>
 																<td>{{ item.JMENO }}</td>
 																<td>{{ new Date(item.ZAHAJENO).toLocaleString('cs-CZ') }}</td>
@@ -354,6 +353,7 @@
 	const cipovaniP3 = ref(null)
 	// const denniPlanyP3 = ref(null)
 	const neshodyL7 = ref(null)
+	const mereniREAL = ref(null)
 
 	const data = await useAsyncData('data', () =>
 		$fetch('https://control.tuma-aerospace.cz/sendPost2/PXQ72SBErpZST9nbB98EZMRRhAFvpC', {
@@ -369,7 +369,7 @@
 				head: `typUdalosti=50;idUzivatele=null;noSkupiny=${noSkupiny};noPlanu=${noPlanu};noPolozky=${noPolozky};`,
 				items: [],
 			},
-		})
+		}),
 	)
 	console.log(data.data.value.payload)
 	hlavickaP0.value = data.data.value.payload?.find((item) => item.TYP === 'HLAVICKA P0')
@@ -383,7 +383,8 @@
 	cipovaniP3.value = data.data.value.payload?.filter((item) => item.TYP === 'OPERACE CIPOVANI P3')
 	// denniPlanyP3.value = data.data.value.payload?.filter((item) => item.TYP === 'DENNI PLANY P3')
 	neshodyL7.value = data.data.value.payload?.filter((item) => item.TYP === 'NESHODY L7')
-
+	mereniREAL.value = data.data.value.payload?.filter((item) => item.TYP === 'MERENI REAL')
+	console.log(mereniREAL.value)
 	const getVydaneMnozstvi = (NO_ARTIKLU, NO_SKLADU) => {
 		const vydej = vydejP5.value.filter((item) => item.NO_ARTIKLU === NO_ARTIKLU && item.NO_SKLADU === NO_SKLADU)
 		return vydej.reduce((acc, item) => acc + Math.abs(item.MNOZSTVI), 0)
@@ -395,6 +396,20 @@
 
 	const getOKks = (NO_ROZPISU) => {
 		const cipovaní = cipovaniP3.value.filter((item) => item.NO_ROZPISU === NO_ROZPISU)
+		let okks = 0
+		cipovaní.forEach((item) => {
+			okks += item.POCET_KS
+		})
+		return okks
+	}
+
+	const getNOKks = (NO_ROZPISU) => {
+		const cipovaní = cipovaniP3.value.filter((item) => item.NO_ROZPISU === NO_ROZPISU)
+		let nokks = 0
+		cipovaní.forEach((item) => {
+			nokks += item.ZMETKY
+		})
+		return nokks
 	}
 </script>
 <style scoped>
