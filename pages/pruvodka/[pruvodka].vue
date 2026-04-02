@@ -95,7 +95,7 @@
 								class="expandable"
 								@click="expandRow(item)">
 								<td>{{ index + 1 }}</td>
-								<td>*{{ item.CAROVY_KOD_ARTIKLU }}*</td>
+								<td><vue-barcode :value="item.CAROVY_KOD_ARTIKLU" :options="{ displayValue: false, height: 44 }"></vue-barcode></td>
 								<td>{{ item.NO_ARTIKLU }} <br />{{ item.NAZEV_ARTIKLU }}</td>
 								<td>{{ item.NO_SKLADU }}</td>
 								<td>{{ item.POTREBNE_MNOZSTVI }}</td>
